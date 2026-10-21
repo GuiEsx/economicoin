@@ -2,16 +2,19 @@ from decimal import Decimal, InvalidOperation
 
 from modelos.cotacao import Cotacao
 from modelos.dinheiro import Dinheiro
-from modelos.moeda_fiat import MoedaFiat
-from modelos.criptoativo import Criptoativo
 from modelos.carteira import Carteira, CarteiraProtegida
 from modelos.exceptions import (
     SaldoInsuficienteError,
     QuantidadeInvalidaError,
     AtivoDesconhecidoError
 )
-from provedores.provedor_fiat import ProvedorFiat
-from provedores.provedor_crypto import ProvedorCripto
+from fabricas.criador_instrumento import (
+    CriadorCriptoativo,
+    CriadorMoedaFiat
+)
+from fabricas.fabrica_provedores_cotacao import (
+    FabricaProvedoresApi
+)
 from servicos.servicos_cotacao import ServicoCotacao
 from servicos.risk_analyzer import (
     modelo_conservador,
@@ -118,13 +121,13 @@ def criar_instrumento():
 
             codigo = ler_codigo_instrumento()
 
-            return MoedaFiat(codigo)
+            return CriadorMoedaFiat().criar(codigo)
 
         if opcao == "2":
 
             codigo = ler_codigo_instrumento()
 
-            return Criptoativo(codigo)
+            return CriadorCriptoativo().criar(codigo)
 
         print("Opção inválida.")
 
@@ -274,13 +277,13 @@ def demonstrar_rf3():
 
     codigo_fiat = ler_codigo_instrumento()
 
-    fiat = MoedaFiat(codigo_fiat)
+    fiat = CriadorMoedaFiat().criar(codigo_fiat)
 
     print("\n2 - Criptoativo")
 
     codigo_crypto = ler_codigo_instrumento()
 
-    crypto = Criptoativo(codigo_crypto)
+    crypto = CriadorCriptoativo().criar(codigo_crypto)
 
     print("\nInstrumentos cadastrados:")
 
@@ -742,14 +745,12 @@ def main():
     # PROVEDORES
     # ------------------------------------------------------
 
-    provedor_fiat = ProvedorFiat()
-
-    provedor_crypto = ProvedorCripto()
+    fabrica_provedores = FabricaProvedoresApi()
 
     servico = ServicoCotacao(
         [
-            provedor_fiat,
-            provedor_crypto
+            fabrica_provedores.criar_provedor_fiat(),
+            fabrica_provedores.criar_provedor_crypto()
         ]
     )
 

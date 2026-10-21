@@ -10,3 +10,7 @@ class ProvedorCotacao(ABC):
         moeda_referencia
     ):
         pass
+
+    @abstractmethod
+    def obter_historico(self, instrumento):
+        pass

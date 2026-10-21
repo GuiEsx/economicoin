@@ -1,14 +1,13 @@
 import json
 
 from datetime import datetime, timedelta, timezone
-from decimal import Decimal
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
-from modelos.cotacao import Cotacao
 from modelos.criptoativo import Criptoativo
 from modelos.exceptions import AtivoDesconhecidoError
+from adaptadores.adaptador_coingecko import AdaptadorCoinGecko
 from provedores.provedor_cotacao import ProvedorCotacao
 
 
@@ -106,35 +105,10 @@ class ProvedorCripto(ProvedorCotacao):
                 "resposta inválida."
             ) from erro
 
-        if not dados:
-            raise AtivoDesconhecidoError(codigo)
-
-        moeda = dados[0]
-
-        if "current_price" not in moeda:
-            raise ValueError(
-                "A CoinGecko não retornou "
-                "uma cotação válida."
-            )
-
-        try:
-
-            valor = Decimal(
-                str(moeda["current_price"])
-            )
-
-        except Exception as erro:
-
-            raise ValueError(
-                "A cotação retornada pela "
-                "CoinGecko é inválida."
-            ) from erro
-
-        return Cotacao(
+        return AdaptadorCoinGecko.adaptar_cotacao(
+            dados,
             codigo,
-            moeda_referencia,
-            valor,
-            datetime.now()
+            moeda_referencia
         )
 
     def obter_historico(
@@ -300,52 +274,7 @@ class ProvedorCripto(ProvedorCotacao):
                 "inválido."
             ) from erro
 
-        precos = dados_historico.get("prices", [])
-
-        if not precos:
-            raise ValueError(
-                "A CoinGecko não retornou preços "
-                "históricos."
-            )
-
-        # Agrupa os preços por hora.
-        precos_horarios = {}
-
-        for timestamp, preco in precos:
-
-            instante = datetime.fromtimestamp(
-                timestamp / 1000,
-                tz=timezone.utc
-            )
-
-            hora = instante.replace(
-                minute=0,
-                second=0,
-                microsecond=0
-            )
-
-            precos_horarios[hora] = Decimal(
-                str(preco)
-            )
-
-        # Ordena cronologicamente.
-        historico = sorted(
-            precos_horarios.items(),
-            key=lambda item: item[0]
+        return AdaptadorCoinGecko.adaptar_historico(
+            dados_historico,
+            horas
         )
-
-        # Mantém somente as últimas horas solicitadas.
-        historico = historico[-horas:]
-
-        valores = [
-            preco
-            for _, preco in historico
-        ]
-
-        if len(valores) < 2:
-            raise ValueError(
-                "Não há dados horários suficientes "
-                "para calcular a volatilidade."
-            )
-
-        return valores
