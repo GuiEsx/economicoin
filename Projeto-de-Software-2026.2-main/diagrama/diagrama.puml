@@ -1,0 +1,219 @@
+@startuml
+
+title Painel de Moedas e Economia - Diagrama de Classes
+
+skinparam classAttributeIconSize 0
+
+' ==========================================================
+' MODELOS
+' ==========================================================
+
+package "modelos" {
+
+    abstract class Instrumento {
+        # _codigo : str
+        + codigo : str
+        {abstract} + calcular_volatilidade(cotacoes) : Decimal
+        {abstract} + formatar_valor(valor) : str
+    }
+
+    class MoedaFiat {
+        + calcular_volatilidade(cotacoes) : Decimal
+        + formatar_valor(valor) : str
+    }
+
+    class Criptoativo {
+        + calcular_volatilidade(cotacoes) : Decimal
+        + formatar_valor(valor) : str
+    }
+
+    class Dinheiro {
+        - __valor : Decimal
+        - __moeda : str
+        + valor : Decimal
+        + moeda : str
+        + __add__(outro : Dinheiro) : Dinheiro
+        + __str__() : str
+    }
+
+    class Cotacao {
+        + moeda_origem : str
+        + moeda_destino : str
+        + valor : object
+        + horario : datetime
+        + __str__() : str
+    }
+
+    class Posicao {
+        - __instrumento : Instrumento
+        - __quantidade : Decimal
+        + instrumento : Instrumento
+        + quantidade : Decimal
+        + valor_em_reais(servico) : Decimal
+    }
+
+    class Carteira {
+        - __posicoes : list
+        + adicionar_posicao(instrumento, quantidade)
+        + obter_posicoes() : tuple
+        + valor_total_em_reais(servico) : Decimal
+        + exibir(servico)
+    }
+
+    class CarteiraProtegida {
+        - __saldo : Decimal
+        - __posicoes : list
+        + saldo : Decimal
+        + comprar(instrumento, quantidade, valor_total)
+        + listar_posicoes()
+        + obter_posicoes() : tuple
+        + valor_total_em_reais(servico) : Decimal
+        + exibir(servico)
+    }
+
+    class ErroFinanceiro {
+    }
+
+    class SaldoInsuficienteError {
+        + __init__(saldo_atual, valor_tentado)
+    }
+
+    class QuantidadeInvalidaError {
+        + __init__(mensagem)
+    }
+
+    class AtivoDesconhecidoError {
+        + __init__(codigo)
+    }
+}
+
+
+' ==========================================================
+' PROVEDORES
+' ==========================================================
+
+package "provedores" {
+
+    abstract class ProvedorCotacao {
+        {abstract} + obter_cotacao(instrumento, moeda_referencia) : Cotacao
+    }
+
+    class ProvedorFiat {
+        + obter_cotacao(instrumento, moeda_referencia) : Cotacao
+        + obter_historico(
+            instrumento,
+            moeda_referencia,
+            dias
+        ) : list
+    }
+
+    class ProvedorCripto {
+        + obter_cotacao(instrumento, moeda_referencia) : Cotacao
+        + obter_historico(instrumento) : list
+    }
+}
+
+
+' ==========================================================
+' SERVIÇOS
+' ==========================================================
+
+package "servicos" {
+
+    class ServicoCotacao {
+        - __provedores : tuple
+        - __cache : dict
+        - __validade_cache : timedelta
+
+        + obter_cotacao(
+            instrumento,
+            moeda_referencia
+        ) : Cotacao
+
+        + calcular_volatilidade(
+            instrumento
+        ) : Decimal
+    }
+
+    class risk_analyzer {
+        + modelo_conservador(
+            carteira,
+            servico_cotacao
+        ) : str
+
+        + modelo_agressivo(
+            carteira,
+            servico_cotacao
+        ) : str
+
+        + avaliar_carteira(
+            carteira,
+            servico_cotacao,
+            estrategia
+        ) : str
+    }
+}
+
+
+' ==========================================================
+' HERANÇA
+' ==========================================================
+
+Instrumento <|-- MoedaFiat
+Instrumento <|-- Criptoativo
+
+ProvedorCotacao <|-- ProvedorFiat
+ProvedorCotacao <|-- ProvedorCripto
+
+ErroFinanceiro <|-- SaldoInsuficienteError
+ErroFinanceiro <|-- QuantidadeInvalidaError
+ErroFinanceiro <|-- AtivoDesconhecidoError
+
+
+' ==========================================================
+' RELACIONAMENTOS DOS MODELOS
+' ==========================================================
+
+Carteira "1" *-- "0..*" Posicao
+
+CarteiraProtegida "1" *-- "0..*" Posicao
+
+Posicao "*" --> "1" Instrumento
+
+
+' ==========================================================
+' RELACIONAMENTOS DE SERVIÇO
+' ==========================================================
+
+Posicao ..> ServicoCotacao
+
+ServicoCotacao "1" o-- "1..*" ProvedorCotacao
+
+ServicoCotacao ..> Instrumento
+ServicoCotacao ..> Cotacao
+
+
+' ==========================================================
+' RELACIONAMENTOS DOS PROVEDORES
+' ==========================================================
+
+ProvedorFiat ..> MoedaFiat
+ProvedorFiat ..> Cotacao
+
+ProvedorCripto ..> Criptoativo
+ProvedorCripto ..> Cotacao
+
+
+' ==========================================================
+' OUTROS RELACIONAMENTOS
+' ==========================================================
+
+CarteiraProtegida ..> SaldoInsuficienteError
+CarteiraProtegida ..> QuantidadeInvalidaError
+
+Posicao ..> QuantidadeInvalidaError
+
+Dinheiro ..> Dinheiro
+
+
+@enduml
