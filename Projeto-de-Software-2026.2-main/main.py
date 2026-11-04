@@ -17,8 +17,8 @@ from fabricas.fabrica_provedores_cotacao import (
 )
 from servicos.servicos_cotacao import ServicoCotacao
 from servicos.risk_analyzer import (
-    modelo_conservador,
-    modelo_agressivo,
+    EstrategiaRiscoAgressiva,
+    EstrategiaRiscoConservadora,
     avaliar_carteira
 )
 
@@ -618,13 +618,13 @@ def demonstrar_rf9(carteira, servico):
 
         if opcao == "1":
 
-            estrategia = modelo_conservador
+            estrategia = EstrategiaRiscoConservadora()
 
             break
 
         if opcao == "2":
 
-            estrategia = modelo_agressivo
+            estrategia = EstrategiaRiscoAgressiva()
 
             break
 
