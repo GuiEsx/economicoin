@@ -18,6 +18,16 @@ Em `fabricas/criador_instrumento.py`, `CriadorInstrumento` define o método abst
 
 Em `fabricas/fabrica_provedores_cotacao.py`, `FabricaProvedoresCotacao` declara operações para criar os provedores de moedas fiduciárias e de criptoativos. `FabricaProvedoresApi` cria essa família de provedores concretos, já envolvidos pelo Decorator de logging. O `main.py` depende da fábrica para montar o `ServicoCotacao`, mantendo a configuração dos produtos fora do fluxo principal e facilitando substituir a família de provedores futuramente.
 
+## Padrões comportamentais
+
+### Strategy
+
+Em `servicos/risk_analyzer.py`, `EstrategiaRisco` define a interface de avaliação, implementada por `EstrategiaRiscoConservadora` e `EstrategiaRiscoAgressiva`. A função `demonstrar_rf9` em `main.py` escolhe uma implementação e a passa para `avaliar_carteira`. O padrão formaliza a alternância entre algoritmos de risco sem mudar o fluxo que os executa.
+
+### Chain of Responsibility
+
+Em `provedores/cadeia_provedores_cotacao.py`, cada `ProvedorCotacaoEmCadeia` tenta atender à consulta e, se o provedor atual lançar `ValueError`, repassa a solicitação ao próximo. `ServicoCotacao`, em `servicos/servicos_cotacao.py`, encadeia os provedores recebidos e inicia a busca tanto para cotações quanto para históricos. Isso centraliza a tentativa sequencial dos provedores e mantém a possibilidade de adicionar outro provedor sem alterar o fluxo do serviço.
+
 ## APIs utilizadas
 
 ### Frankfurter
@@ -108,6 +118,7 @@ modelos/
 └── posicao.py
 
 provedores/
+├── cadeia_provedores_cotacao.py
 ├── provedor_cotacao.py
 ├── provedor_crypto.py
 ├── provedor_cotacao_decorador.py
