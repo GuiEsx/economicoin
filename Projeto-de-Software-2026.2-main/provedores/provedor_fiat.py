@@ -7,7 +7,10 @@ from urllib.request import Request, urlopen
 
 from modelos.cotacao import Cotacao
 from modelos.moeda_fiat import MoedaFiat
-from modelos.exceptions import AtivoDesconhecidoError
+from modelos.exceptions import (
+    AtivoDesconhecidoError,
+    ProvedorNaoAtendeError
+)
 from provedores.provedor_cotacao import ProvedorCotacao
 
 
@@ -24,7 +27,7 @@ class ProvedorFiat(ProvedorCotacao):
             instrumento,
             MoedaFiat
         ):
-            raise ValueError(
+            raise ProvedorNaoAtendeError(
                 "Este provedor atende apenas "
                 "moedas fiduciárias."
             )
@@ -152,7 +155,7 @@ class ProvedorFiat(ProvedorCotacao):
             instrumento,
             MoedaFiat
         ):
-            raise ValueError(
+            raise ProvedorNaoAtendeError(
                 "Este provedor atende apenas "
                 "moedas fiduciárias."
             )

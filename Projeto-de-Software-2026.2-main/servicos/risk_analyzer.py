@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from decimal import Decimal
 
 from modelos.criptoativo import Criptoativo
 
@@ -34,31 +35,17 @@ class EstrategiaRiscoAgressiva(EstrategiaRisco):
             posicao.valor_em_reais(servico_cotacao)
             for posicao in posicoes
         ]
-        valor_total = sum(valores)
+        valor_total = sum(valores, Decimal("0"))
 
         if valor_total == 0:
             return "BAIXO"
 
         maior_concentracao = max(valores) / valor_total
 
-        if maior_concentracao > 0.60:
+        if maior_concentracao > Decimal("0.60"):
             return "ALTO"
 
         return "BAIXO"
-
-
-def modelo_conservador(carteira, servico_cotacao) -> str:
-    return EstrategiaRiscoConservadora().avaliar(
-        carteira,
-        servico_cotacao
-    )
-
-
-def modelo_agressivo(carteira, servico_cotacao) -> str:
-    return EstrategiaRiscoAgressiva().avaliar(
-        carteira,
-        servico_cotacao
-    )
 
 
 def avaliar_carteira(
@@ -66,16 +53,16 @@ def avaliar_carteira(
     servico_cotacao,
     estrategia=None
 ) -> str:
+    """
+    Contexto do Strategy: executa a estratégia de risco
+    recebida, sem saber qual é. Sem estratégia
+    informada, usa a conservadora.
+    """
+
     if estrategia is None:
         estrategia = EstrategiaRiscoConservadora()
 
-    if isinstance(estrategia, EstrategiaRisco):
-        return estrategia.avaliar(
-            carteira,
-            servico_cotacao
-        )
-
-    return estrategia(
+    return estrategia.avaliar(
         carteira,
         servico_cotacao
     )

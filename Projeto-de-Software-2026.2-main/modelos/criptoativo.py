@@ -5,11 +5,15 @@ from modelos.instrumento import Instrumento
 
 class Criptoativo(Instrumento):
 
-    def calcular_volatilidade(self):
-        return (
-            "Critério: preços horários "
-            "em uma janela de 24 horas."
-        )
+    def calcular_volatilidade(self, cotacoes):
+        """
+        Calcula a volatilidade do criptoativo.
+
+        Critério: desvio-padrão dos retornos percentuais
+        entre preços horários (janela de 24 horas).
+        """
+
+        return self._desvio_padrao_dos_retornos(cotacoes)
 
     def formatar_valor(self, valor):
         valor = Decimal(str(valor))

@@ -1,4 +1,5 @@
 import json
+import os
 
 from datetime import datetime, timedelta, timezone
 from urllib.error import HTTPError, URLError
@@ -6,7 +7,10 @@ from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
 from modelos.criptoativo import Criptoativo
-from modelos.exceptions import AtivoDesconhecidoError
+from modelos.exceptions import (
+    AtivoDesconhecidoError,
+    ProvedorNaoAtendeError
+)
 from adaptadores.adaptador_coingecko import AdaptadorCoinGecko
 from provedores.provedor_cotacao import ProvedorCotacao
 
@@ -15,8 +19,22 @@ class ProvedorCripto(ProvedorCotacao):
 
     URL_BASE = "https://api.coingecko.com/api/v3"
 
-    def __init__(self):
-        self.api_key = "CG-FJ665ewLg6r9QFoPT1GaCWRz"
+    def __init__(self, api_key=None):
+        # A API pública da CoinGecko funciona sem chave.
+        # Uma chave demo é opcional e vem de fora do código.
+        self.api_key = api_key or os.environ.get(
+            "COINGECKO_API_KEY"
+        )
+
+    def _cabecalhos(self):
+        cabecalhos = {
+            "User-Agent": "Painel-de-Moedas-e-Economia/1.0"
+        }
+
+        if self.api_key:
+            cabecalhos["x-cg-demo-api-key"] = self.api_key
+
+        return cabecalhos
 
     def obter_cotacao(
         self,
@@ -28,7 +46,7 @@ class ProvedorCripto(ProvedorCotacao):
             instrumento,
             Criptoativo
         ):
-            raise ValueError(
+            raise ProvedorNaoAtendeError(
                 "Este provedor atende apenas "
                 "criptoativos."
             )
@@ -54,10 +72,7 @@ class ProvedorCripto(ProvedorCotacao):
 
         requisicao = Request(
             url,
-            headers={
-                "User-Agent": "Painel-de-Moedas-e-Economia/1.0",
-                "x-cg-demo-api-key": self.api_key
-            }
+            headers=self._cabecalhos()
         )
 
         try:
@@ -75,8 +90,8 @@ class ProvedorCripto(ProvedorCotacao):
 
             if erro.code in (401, 403):
                 raise ValueError(
-                    "A chave da CoinGecko é inválida "
-                    "ou não possui acesso à API."
+                    "A CoinGecko recusou o acesso "
+                    "(chave inválida ou limite de uso)."
                 )
 
             try:
@@ -128,7 +143,7 @@ class ProvedorCripto(ProvedorCotacao):
             instrumento,
             Criptoativo
         ):
-            raise ValueError(
+            raise ProvedorNaoAtendeError(
                 "Este provedor atende apenas "
                 "criptoativos."
             )
@@ -162,10 +177,7 @@ class ProvedorCripto(ProvedorCotacao):
 
         requisicao_mercado = Request(
             url_mercado,
-            headers={
-                "User-Agent": "Painel-de-Moedas-e-Economia/1.0",
-                "x-cg-demo-api-key": self.api_key
-            }
+            headers=self._cabecalhos()
         )
 
         try:
@@ -183,8 +195,8 @@ class ProvedorCripto(ProvedorCotacao):
 
             if erro.code in (401, 403):
                 raise ValueError(
-                    "A chave da CoinGecko é inválida "
-                    "ou não possui acesso à API."
+                    "A CoinGecko recusou o acesso "
+                    "(chave inválida ou limite de uso)."
                 )
 
             raise ValueError(
@@ -231,10 +243,7 @@ class ProvedorCripto(ProvedorCotacao):
 
         requisicao_historico = Request(
             url_historico,
-            headers={
-                "User-Agent": "Painel-de-Moedas-e-Economia/1.0",
-                "x-cg-demo-api-key": self.api_key
-            }
+            headers=self._cabecalhos()
         )
 
         try:
@@ -252,8 +261,8 @@ class ProvedorCripto(ProvedorCotacao):
 
             if erro.code in (401, 403):
                 raise ValueError(
-                    "A chave da CoinGecko é inválida "
-                    "ou não possui acesso à API."
+                    "A CoinGecko recusou o acesso "
+                    "(chave inválida ou limite de uso)."
                 )
 
             raise ValueError(

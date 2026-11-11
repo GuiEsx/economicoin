@@ -30,3 +30,16 @@ class AtivoDesconhecidoError(ErroFinanceiro):
         super().__init__(
             f"Ativo {codigo} não encontrado."
         )
+
+
+class ProvedorNaoAtendeError(ValueError):
+    """
+    Sinal da Chain of Responsibility: o provedor não é
+    responsável por este tipo de instrumento.
+
+    Só este erro faz a cadeia repassar ao próximo elo.
+    Falhas reais (rede, HTTP, resposta inválida) continuam
+    sendo ValueError comum e chegam ao usuário com a
+    mensagem original.
+    """
+    pass

@@ -605,6 +605,11 @@ def demonstrar_rf9(carteira, servico):
     print("RF9 - ANÁLISE DE RISCO")
     print("=" * 60)
 
+    print(
+        "\nA análise usa a carteira montada no RF5 "
+        "(opção 5)."
+    )
+
     print("\nEscolha uma estratégia:")
 
     print("1 - Conservadora")
@@ -652,7 +657,7 @@ def demonstrar_rf9(carteira, servico):
     print("\nEstratégia selecionada:")
 
     print(
-        estrategia.__name__
+        type(estrategia).__name__
     )
 
     print("Classificação de risco:")
@@ -664,35 +669,54 @@ def demonstrar_rf9(carteira, servico):
 # CONSULTAR CARTEIRA
 # ==========================================================
 
-def consultar_carteira(carteira, servico):
+def consultar_carteira(carteira, carteira_protegida, servico):
     """
-    Exibe as posições atuais e o valor total.
+    Exibe as duas carteiras do sistema:
+    a carteira do RF5 (usada na análise de risco do RF9)
+    e a carteira protegida do RF7, com o saldo.
     """
 
     print("\n" + "=" * 60)
     print("CONSULTA DA CARTEIRA")
     print("=" * 60)
 
-    try:
+    carteiras = (
+        ("CARTEIRA (RF5 / usada no RF9)", carteira),
+        ("CARTEIRA PROTEGIDA (RF7)", carteira_protegida),
+    )
 
-        carteira.exibir(servico)
+    for titulo, carteira_atual in carteiras:
 
-    except AtivoDesconhecidoError as erro:
+        print(f"\n>>> {titulo}")
 
-        print(
-            "\nAtivo não encontrado:"
+        try:
+
+            carteira_atual.exibir(servico)
+
+        except AtivoDesconhecidoError as erro:
+
+            print(
+                "\nAtivo não encontrado:"
+            )
+
+            print(erro)
+
+        except ValueError as erro:
+
+            print(
+                "\nNão foi possível consultar "
+                "o valor de uma das posições."
+            )
+
+            print(erro)
+
+    print(
+        f"\nSaldo disponível na carteira protegida: "
+        f"R$ {carteira_protegida.saldo:.2f}".replace(
+            ".",
+            ","
         )
-
-        print(erro)
-
-    except ValueError as erro:
-
-        print(
-            "\nNão foi possível consultar "
-            "o valor de uma das posições."
-        )
-
-        print(erro)
+    )
 
 
 # ==========================================================
@@ -819,6 +843,7 @@ def main():
         elif opcao == "8":
 
             consultar_carteira(
+                carteira,
                 carteira_protegida,
                 servico
             )
