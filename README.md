@@ -1,145 +1,235 @@
-## Padrões estruturais
+# Painel de Moedas e Economia
 
-### Adapter
+Projeto acadêmico em Python para consultar e gerenciar moedas fiduciárias e criptoativos, acompanhar cotações e posições em carteira, registrar compras e analisar riscos.
 
-O `AdaptadorCoinGecko`, em `adaptadores/adaptador_coingecko.py`, converte os payloads específicos da CoinGecko para os tipos esperados internamente: cotações `Cotacao` e históricos como listas de `Decimal`. O `ProvedorCripto` usa esse adaptador depois de consultar a API. Assim, o formato externo da API não precisa se espalhar pelo domínio.
+O código-fonte está na pasta [`Projeto-de-Software-2026.2-main/`](Projeto-de-Software-2026.2-main/). Os exemplos abaixo mostram trechos das implementações existentes nesse projeto.
 
-### Decorator
+## Funcionalidades
 
-`ProvedorCotacaoComLog`, em `provedores/provedor_cotacao_decorador.py`, envolve um provedor e acrescenta registros de diagnóstico às consultas de cotação e histórico, mantendo a mesma interface. O `main.py` usa o decorador ao configurar os provedores. Os registros usam o nível `DEBUG`; podem ser habilitados configurando o logging da aplicação, sem alterar o provedor ou o serviço.
+* **RF1** – Consultar cotação
+* **RF2** – Trabalhar com dinheiro sem misturar moedas implicitamente
+* **RF3** – Criar instrumentos fiduciários e criptoativos
+* **RF4** – Exibir valores e calcular volatilidade
+* **RF5** – Adicionar posição
+* **RF6** – Consultar cotação multifonte
+* **RF7** – Comprar ativo
+* **RF8** – Tratar erros
+* **RF9** – Analisar risco da carteira
+* **RF10** – Armazenar cotações em cache
+
+## Tecnologias e serviços externos
+
+* Python e Programação Orientada a Objetos
+* `Decimal` para valores numéricos financeiros
+* [Frankfurter](https://www.frankfurter.dev/) para cotações e históricos de moedas fiduciárias
+* [CoinGecko](https://www.coingecko.com/) para cotações e históricos de criptoativos
+* PlantUML para o diagrama de classes
+
+## Executar
+
+Na pasta do código-fonte, execute:
+
+```bash
+cd Projeto-de-Software-2026.2-main
+python main.py
+```
 
 ## Padrões criacionais
 
 ### Factory Method
 
-Em `fabricas/criador_instrumento.py`, `CriadorInstrumento` define o método abstrato `criar`, e os criadores concretos `CriadorMoedaFiat` e `CriadorCriptoativo` instanciam, respectivamente, `MoedaFiat` e `Criptoativo`. O menu de seleção e a demonstração RF3 usam esses criadores em vez de instanciar diretamente as classes. Isso concentra a decisão de criação por tipo e permite acrescentar novos instrumentos com um criador específico.
+**Implementação:** [`fabricas/criador_instrumento.py`](Projeto-de-Software-2026.2-main/fabricas/criador_instrumento.py). A classe abstrata `CriadorInstrumento` declara `criar()`. `CriadorMoedaFiat` e `CriadorCriptoativo` sobrescrevem esse método para produzir, respectivamente, `MoedaFiat` e `Criptoativo`. O menu e a demonstração RF3 usam os criadores em [`main.py`](Projeto-de-Software-2026.2-main/main.py).
+
+**Motivo:** separar a criação de cada tipo de instrumento em um criador específico. Para adicionar um novo tipo, pode-se implementar um novo criador sem colocar sua instanciação dentro da regra de negócio que usa o instrumento. No menu, a escolha do criador concreto continua explícita, pois é a interface que pergunta ao usuário qual instrumento quer criar.
+
+**Trecho da implementação:**
+
+```python
+class CriadorInstrumento(ABC):
+    @abstractmethod
+    def criar(self, codigo):
+        pass
+
+
+class CriadorMoedaFiat(CriadorInstrumento):
+    def criar(self, codigo):
+        return MoedaFiat(codigo)
+
+
+class CriadorCriptoativo(CriadorInstrumento):
+    def criar(self, codigo):
+        return Criptoativo(codigo)
+```
+
+**Uso no programa:**
+
+```python
+fiat = CriadorMoedaFiat().criar(codigo_fiat)
+crypto = CriadorCriptoativo().criar(codigo_crypto)
+```
 
 ### Abstract Factory
 
-Em `fabricas/fabrica_provedores_cotacao.py`, `FabricaProvedoresCotacao` declara operações para criar os provedores de moedas fiduciárias e de criptoativos. `FabricaProvedoresApi` cria essa família de provedores concretos, já envolvidos pelo Decorator de logging. O `main.py` depende da fábrica para montar o `ServicoCotacao`, mantendo a configuração dos produtos fora do fluxo principal e facilitando substituir a família de provedores futuramente.
+**Implementação:** [`fabricas/fabrica_provedores_cotacao.py`](Projeto-de-Software-2026.2-main/fabricas/fabrica_provedores_cotacao.py). `FabricaProvedoresCotacao` declara métodos para criar os dois produtos da família de provedores: o de moeda fiduciária e o de criptoativos. `FabricaProvedoresApi` implementa os métodos e retorna os provedores com logging decorado. A fábrica é usada na inicialização do [`ServicoCotacao`](Projeto-de-Software-2026.2-main/main.py).
+
+**Motivo:** manter a criação dos provedores relacionados em um único objeto e evitar que o código de inicialização precise conhecer os detalhes de construção de cada um. Outra implementação da fábrica poderia fornecer uma família alternativa, como provedores simulados para testes. No estado atual há uma fábrica concreta; essa substituição é uma possibilidade de extensão, não uma implementação já presente.
+
+**Trecho da implementação:**
+
+```python
+class FabricaProvedoresCotacao(ABC):
+    @abstractmethod
+    def criar_provedor_fiat(self) -> ProvedorCotacao:
+        pass
+
+    @abstractmethod
+    def criar_provedor_crypto(self) -> ProvedorCotacao:
+        pass
+
+
+class FabricaProvedoresApi(FabricaProvedoresCotacao):
+    def criar_provedor_fiat(self):
+        return ProvedorCotacaoComLog(ProvedorFiat())
+
+    def criar_provedor_crypto(self):
+        return ProvedorCotacaoComLog(ProvedorCripto())
+```
+
+Os produtos são os **objetos provedores**, que consultam as APIs externas; a fábrica não cria as próprias APIs.
+
+## Padrões estruturais
+
+### Adapter
+
+**Implementação:** [`adaptadores/adaptador_coingecko.py`](Projeto-de-Software-2026.2-main/adaptadores/adaptador_coingecko.py), utilizado por [`provedores/provedor_crypto.py`](Projeto-de-Software-2026.2-main/provedores/provedor_crypto.py).
+
+**Motivo:** a resposta da CoinGecko tem um formato próprio. O adaptador transforma esse formato em objetos `Cotacao` e listas de `Decimal`, que são as formas usadas pelo restante do sistema. Assim, os detalhes do payload externo ficam concentrados na integração com a CoinGecko.
+
+**Trechos da implementação e uso:**
+
+```python
+class AdaptadorCoinGecko:
+    @staticmethod
+    def adaptar_cotacao(dados, codigo, moeda_referencia):
+        # Valida e converte a resposta externa.
+        ...
+        return Cotacao(
+            codigo,
+            moeda_referencia,
+            valor,
+            datetime.now()
+        )
+```
+
+```python
+return AdaptadorCoinGecko.adaptar_cotacao(
+    dados,
+    codigo,
+    moeda_referencia
+)
+```
+
+### Decorator
+
+**Implementação:** [`provedores/provedor_cotacao_decorador.py`](Projeto-de-Software-2026.2-main/provedores/provedor_cotacao_decorador.py). `ProvedorCotacaoComLog` envolve um provedor concreto e é aplicado pela fábrica de provedores.
+
+**Motivo:** acrescentar diagnóstico de consultas sem alterar as classes que acessam as APIs e sem mudar a interface esperada pelo serviço. Os registros são feitos no nível `DEBUG`.
+
+**Trecho da implementação:**
+
+```python
+class ProvedorCotacaoComLog(ProvedorCotacaoDecorador):
+    def obter_cotacao(self, instrumento, moeda_referencia):
+        self._logger.debug(
+            "Consultando %s em %s",
+            instrumento.codigo,
+            moeda_referencia
+        )
+        cotacao = super().obter_cotacao(
+            instrumento,
+            moeda_referencia
+        )
+        self._logger.debug(
+            "Cotação recebida para %s: %s",
+            instrumento.codigo,
+            cotacao.valor
+        )
+        return cotacao
+```
 
 ## Padrões comportamentais
 
 ### Strategy
 
-Em `servicos/risk_analyzer.py`, `EstrategiaRisco` define a interface de avaliação, implementada por `EstrategiaRiscoConservadora` e `EstrategiaRiscoAgressiva`. A função `demonstrar_rf9` em `main.py` escolhe uma implementação e a passa para `avaliar_carteira`. O padrão formaliza a alternância entre algoritmos de risco sem mudar o fluxo que os executa.
+**Implementação:** [`servicos/risk_analyzer.py`](Projeto-de-Software-2026.2-main/servicos/risk_analyzer.py). `EstrategiaRisco` define o contrato implementado por `EstrategiaRiscoConservadora` e `EstrategiaRiscoAgressiva`. A demonstração RF9 em [`main.py`](Projeto-de-Software-2026.2-main/main.py) escolhe a estratégia e a entrega a `avaliar_carteira`.
+
+**Motivo:** oferecer algoritmos diferentes de análise de risco e permitir selecionar qual executar sem misturar suas regras à função que coordena a avaliação.
+
+**Trechos da implementação e uso:**
+
+```python
+class EstrategiaRisco(ABC):
+    @abstractmethod
+    def avaliar(self, carteira, servico_cotacao) -> str:
+        pass
+
+
+class EstrategiaRiscoConservadora(EstrategiaRisco):
+    def avaliar(self, carteira, servico_cotacao) -> str:
+        ...
+
+
+class EstrategiaRiscoAgressiva(EstrategiaRisco):
+    def avaliar(self, carteira, servico_cotacao) -> str:
+        ...
+```
+
+```python
+return estrategia.avaliar(
+    carteira,
+    servico_cotacao
+)
+```
 
 ### Chain of Responsibility
 
-Em `provedores/cadeia_provedores_cotacao.py`, cada `ProvedorCotacaoEmCadeia` tenta atender à consulta e, se o provedor atual lançar `ValueError`, repassa a solicitação ao próximo. `ServicoCotacao`, em `servicos/servicos_cotacao.py`, encadeia os provedores recebidos e inicia a busca tanto para cotações quanto para históricos. Isso centraliza a tentativa sequencial dos provedores e mantém a possibilidade de adicionar outro provedor sem alterar o fluxo do serviço.
+**Implementação:** [`provedores/cadeia_provedores_cotacao.py`](Projeto-de-Software-2026.2-main/provedores/cadeia_provedores_cotacao.py), montada pelo [`ServicoCotacao`](Projeto-de-Software-2026.2-main/servicos/servicos_cotacao.py).
 
-## APIs utilizadas
+**Motivo:** os provedores atendem tipos diferentes de instrumento. A cadeia permite que a solicitação passe ao próximo provedor quando o atual sinaliza especificamente que não atende àquele tipo. Isso evita que o serviço precise conhecer a regra de cada provedor.
 
-### Frankfurter
+**Trecho da implementação:**
 
-Utilizada para obtenção de cotações e históricos de moedas fiduciárias.
-
-### CoinGecko
-
-Utilizada para obtenção de cotações e históricos de criptoativos.
-
-## Execução
-
-É necessário ter o **Python 3** instalado.
-
-Execute o projeto pela raiz do repositório:
-
-```bash
-python main.py
+```python
+try:
+    return self._provedor.obter_cotacao(
+        instrumento,
+        moeda_referencia
+    )
+except ProvedorNaoAtendeError:
+    if self._proximo is not None:
+        return self._proximo.obter_cotacao(
+            instrumento,
+            moeda_referencia
+        )
+    raise ProvedorNaoAtendeError(
+        f"Nenhum provedor atende cotação "
+        f"para {instrumento.codigo}."
+    ) from None
 ```
 
-O sistema apresenta um menu interativo para acesso às funcionalidades implementadas.
-
-## Programação Orientada a Objetos
-
-O projeto utiliza conceitos de:
-
-* Encapsulamento
-* Herança
-* Abstração
-* Polimorfismo
-
-# Painel de Moedas e Economia
-
-Projeto desenvolvido para a disciplina de Projeto de Software, utilizando Programação Orientada a Objetos em Python.
-
-## Sobre o projeto
-
-O **Painel de Moedas e Economia** é um sistema para consulta e gerenciamento de moedas fiduciárias e criptoativos, permitindo trabalhar com cotações, posições em carteira, compras de ativos e análise de risco.
-
-O projeto utiliza diferentes provedores de cotação e possui um mecanismo de cache para evitar consultas externas repetidas em curto intervalo.
-
-## Funcionalidades
-
-O projeto implementa os requisitos funcionais:
-
-* **RF1** – Consultar cotação
-* **RF2** – Trabalhar com dinheiro
-* **RF3** – Instrumentos
-* **RF4** – Exibição e volatilidade
-* **RF5** – Adicionar posição
-* **RF6** – Consultar cotação multifonte
-* **RF7** – Comprar ativo
-* **RF8** – Tratamento de erros
-* **RF9** – Análise de risco
-* **RF10** – Cache de cotações
-
-## Tecnologias
-
-* Python
-* Programação Orientada a Objetos
-* Decimal
-* Frankfurter API
-* CoinGecko API
-* PlantUML
+Somente `ProvedorNaoAtendeError` avança a cadeia. Erros reais, como falha de rede ou resposta inválida, não são tratados como se o provedor simplesmente não atendesse à solicitação.
 
 ## Estrutura do projeto
 
 ```text
-diagrama/
-├── diagrama.puml
-└── diagrama.png
-
-adaptadores/
-└── adaptador_coingecko.py
-
-fabricas/
-├── criador_instrumento.py
-└── fabrica_provedores_cotacao.py
-
-modelos/
-├── carteira.py
-├── cotacao.py
-├── criptoativo.py
-├── dinheiro.py
-├── exceptions.py
-├── instrumento.py
-├── moeda_fiat.py
-└── posicao.py
-
-provedores/
-├── cadeia_provedores_cotacao.py
-├── provedor_cotacao.py
-├── provedor_crypto.py
-├── provedor_cotacao_decorador.py
-└── provedor_fiat.py
-
-servicos/
-├── risk_analyzer.py
-└── servicos_cotacao.py
-
-.gitignore
-README.md
-main.py
+Projeto-de-Software-2026.2-main/
+├── adaptadores/
+├── fabricas/
+├── modelos/
+├── provedores/
+├── servicos/
+├── diagrama/
+└── main.py
 ```
 
-## Arquitetura
-
-O projeto está organizado em três camadas principais:
-
-* **modelos:** entidades e regras do domínio, como moedas, criptoativos, dinheiro, posições e carteiras.
-* **adaptadores:** conversão das respostas externas para os formatos usados pelo domínio.
-* **provedores:** comunicação com as APIs externas de cotação.
-* **servicos:** gerenciamento das consultas, cache e análise de risco.
-
-O diagrama de classes UML está disponível na pasta [`diagrama/`](diagrama/).
+O diagrama de classes está na pasta [`diagrama/`](Projeto-de-Software-2026.2-main/diagrama/).
